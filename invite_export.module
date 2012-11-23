@@ -1,0 +1,82 @@
+<?php
+/**
+ * @file
+ * It exports the data of inviter and invitee into a xls file.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function invite_export_menu() {// Calling a menu hook to create a menu in admin nav.
+  $items = array();
+
+	  $items['invite_export'] = array(
+		'title' => 'InviteExport', 
+		'page callback' => 'invite_export_page', 
+		'access arguments' => array('administer invitations'), 
+		'type' => MENU_NORMAL_ITEM,
+	   );
+    return $items;
+   }
+   
+/**
+ * Implementation of hook_page().
+ */
+function invite_export_page() {//Function that will query invites and users table data and export xls.
+
+ // This is needed because with sites with 10s of 1,000s of users
+  // the setting for PHP (e.g. 96MB or 128MB) is not enough. Instead
+  // of increasing it for all pages and modules, we just do it for 
+  // this one, keeping a safe threshold for others.
+  @ini_set('memory_limit', '750M');
+  @set_time_limit(240);
+  
+  header("Content-type: application/octet-stream");
+  $filename = "invitations_report_" . date('Y-m-d');	
+  header("Content-Disposition: attachment; filename=$filename.xls");
+  header('Cache-Control: maxage=3600'); //Adjust maxage appropriately
+  header('Pragma: public');
+  header('Expires: 0');
+
+
+
+//Query users and invite table
+$result = db_query("SELECT u.uid,u.name InviterUserName,
+i.email InviteeEmail,DATE( FROM_UNIXTIME( i.created ) ) created, 
+DATE( FROM_UNIXTIME( i.expiry ) ) expiry, 
+ i.joined joined 
+ FROM {users u,invite i} WHERE u.uid=i.uid");
+
+ //Table structure to be exported in xls
+echo "<table cellspacing='1' cellpadding='1' border=1 align=center>";
+	echo"<tr>";
+		echo"<th>Inviter Uid</th>";
+		echo"<th>Inviter User Name</th>";
+		echo"<th>Invitee Email</th>";
+		echo"<th>Invitation Sent on</th>";
+		echo"<th>Expiry</th>";
+		echo"<th>Invitee Joined on</th>";
+	echo"</tr>";
+	
+// check if query returns null	
+if ($result) {
+	while($row = db_fetch_array($result)){
+		if($row['joined']=="0")
+				$joined ="Never";
+		else
+				$joined = date("Y-m-d",$row['joined']);		
+			echo"<tr>";
+			echo"<td>".$row['uid']."</td>";
+			echo"<td>".$row['InviterUserName']."</td>";
+			echo"<td>".$row['InviteeEmail']."</td>";
+			echo"<td>".$row['created']."</td>";
+			echo"<td>".$row['expiry']."</td>";
+			echo"<td>".$joined."</td>";
+			echo"</tr>";
+	}
+}
+echo"</table>";
+
+}
+
+?>

@@ -1,0 +1,7 @@
+name = Invite Export
+description = "Allows administrators to export invitation statics into xls file."
+dependencies[] = invite
+core = 6.x
+package = Invite
+version = 6.x-1.0-dev
+
